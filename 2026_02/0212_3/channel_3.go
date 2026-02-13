@@ -11,8 +11,6 @@ import (
 // 생산자 - 소비자 패턴 : mutex를 사용하지 않고 채널을 이용하여 race condition을 방지하는 방법
 func main() {
 
-	// 좀 더 go스럽게 처리하려면??
-
 	var wg sync.WaitGroup
 
 	makeBodyChan := make(chan *Car)
@@ -22,11 +20,12 @@ func main() {
 	paintingChan := make(chan *Car)
 	paintingEnd := make(chan struct{})
 
-	wg.Add(3) // 3개의 고루틴 실행
+	wg.Add(3) // 3개의 고루틴 실행 - Add < Done() : 음수가 될 수 없으므로 panic, Add > Done() DeadLock
 	go makeCar(&wg, makeEnd, makeBodyChan, initEnd, initTireChan)
 	go initTire(&wg, initEnd, initTireChan, paintingEnd, paintingChan)
 	go painting(&wg, paintingEnd, paintingChan)
 
+	// 생산자 소비자 패턴에서 데이터를 생산하는 역할.
 	for i := 1; i <= 10; i++ {
 		if i%2 == 1 {
 			makeBodyChan <- &Car{}
