@@ -59,14 +59,14 @@ func (r *TokenBucket) refill(interval time.Duration, ctx context.Context) {
 func (r *TokenBucket) Allow() bool {
 
 	select {
-	case _, ok := <-r.TokenChan:
+	case _, ok := <-r.TokenChan: // 꺼낼 수 있는 상태 + 꺼냄
 		// 채널이 닫힌 상태일때는 nil이므로 false
 		if !ok {
 			return false
 		} else {
 			return true
 		}
-	default:
+	default: // 꺼낼 수 없는 상태
 		return false
 	}
 }
