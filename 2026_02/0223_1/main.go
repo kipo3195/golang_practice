@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"test/dispatcher"
 	"test/notifier"
 )
@@ -26,6 +27,6 @@ func main() {
 		dispatcher.RegistNotifier(notifier.NewNotifierImpl())
 	}
 
-	dispatcher.BroadCast("test")
-
+	sendError := dispatcher.BroadCast("test")
+	log.Println("실패한 notifier의 error : ", sendError)
 }
