@@ -1,8 +1,6 @@
 package main
 
 import (
-	"context"
-	"sync"
 	"test/dispatcher"
 	"test/notifier"
 )
@@ -22,16 +20,12 @@ import (
 
 func main() {
 
-	ctx, cancel := context.WithCancel(context.Background())
+	dispatcher := dispatcher.NewDispatcher()
 
-	messageChan := make(chan string)
-	dispatcher := dispatcher.NewDispatcher(ctx, messageChan)
-
-	var wg sync.WaitGroup
-
-	// notifier 생성
 	for i := 1; i <= 5; i++ {
-		dispatcher.RegistNotifier(notifier.NewNotifier(&wg, cancel))
+		dispatcher.RegistNotifier(notifier.NewNotifierImpl())
 	}
+
+	dispatcher.BroadCast("test")
 
 }

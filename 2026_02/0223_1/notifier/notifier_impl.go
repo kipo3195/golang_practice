@@ -1,44 +1,24 @@
 package notifier
 
-import (
-	"context"
-	"log"
-	"sync"
-)
+import "log"
 
-type NotifierImpl struct {
+type notifierImpl struct {
 	messageChan chan string
-	wg          *sync.WaitGroup
-	cancel      context.CancelFunc
 }
 
-func NewNotifier(wg *sync.WaitGroup, cancel context.CancelFunc) Notifier {
-
-	wg.Add(1)
-
-	return &NotifierImpl{
-		wg:          wg,
-		messageChan: make(chan string),
-		cancel:      cancel,
+func NewNotifierImpl() Notifier {
+	return &notifierImpl{
+		messageChan: make(chan string, 1),
 	}
 }
 
-func (r *NotifierImpl) Send(message string) error {
-	defer r.wg.Done()
-	for {
-		select {
-		case msg := <-r.messageChan:
-			log.Println("msg 처리 : ", msg)
-			// 2초 이상 걸리면
-			if message == "stop" {
-				r.cancel()
-				return nil
-			}
-		}
+func (r *notifierImpl) Send(message string) error {
+
+	// 메시지를 처리하거나, 종료되거나
+	select {
+	case r.messageChan <- message:
+		log.Println("msg : ", message)
 	}
 
-}
-
-func (r *NotifierImpl) Noti(message string) {
-	r.messageChan <- message
+	return nil
 }

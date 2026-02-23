@@ -2,39 +2,37 @@ package dispatcher
 
 import (
 	"context"
+	"sync"
 	"test/notifier"
+	"time"
 )
 
 type Dispatcher struct {
-	messageChan chan string
-	Notifier    []notifier.Notifier
-	ctx         context.Context
+	notifiers []notifier.Notifier
 }
 
-func NewDispatcher(ctx context.Context, messageChan chan string) *Dispatcher {
-	return &Dispatcher{
-		messageChan: messageChan,
-		ctx:         ctx,
+func NewDispatcher() Dispatcher {
+	return Dispatcher{
+		notifiers: make([]notifier.Notifier, 0),
 	}
 }
 
-func (r *Dispatcher) RegistNotifier(notifier notifier.Notifier) {
-	r.Notifier = append(r.Notifier, notifier)
+func (r *Dispatcher) RegistNotifier(n notifier.Notifier) {
+	r.notifiers = append(r.notifiers, n)
 }
 
-func (r *Dispatcher) Broadcast(message string) {
+func (r *Dispatcher) BroadCast(message string) {
 
-	defer close(r.messageChan)
+	var wg sync.WaitGroup
 
-	for {
-		select {
-		case msg := <-r.messageChan:
-			for _, n := range r.Notifier {
-				go n.Noti(msg)
-			}
-		case <-r.ctx.Done():
-			return
-		}
+	for _, n := range r.notifiers {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		wg.Add(1)
+		go func() {
+			n.Send(message)
+		}()
 	}
+
+	wg.Wait()
 
 }
