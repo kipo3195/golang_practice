@@ -1,9 +1,9 @@
-package worker
+package common
 
 // 클로저 : 자신이 생성된 환경을 기억해뒀다가 활용할 수 있는 함수
 // 클로저 캡쳐 : 클로저가 외부 함수를 호출
 // 값 타입으로 사용되는 것이아닌 메모리 주소값을 참조하여 사용함.
 // stack 변수이지만, 참조되는 동안에는 GC의 대상이 되지 않음
 
-// Work라는 타입명을 갖는 int 매개변수를 받아, int 값을 리턴하는 함수 타입
-type Work func(int) int
+// Operator 타입명을 갖는 int 매개변수를 받아, int 값을 리턴하는 함수 타입
+type Operator func(int) int

@@ -2,7 +2,7 @@ package main
 
 import (
 	"log"
-	"sort"
+	"test/common"
 	"test/worker"
 )
 
@@ -13,19 +13,17 @@ import (
 
 func main() {
 
-	// w는 Work 함수이다. (SumWork는 Work라는 함수를 리턴)
-	// w는 함수이므로 사용하는 로직에서 바로 매개변수를 던질 수 있다
-	w := worker.SumWork()
-
 	var s []int
 	for i := 1; i <= 10; i++ {
 		s = append(s, i)
 	}
 
-	result := worker.SumWorkerProcess(s, w)
+	repo := worker.NewSumWorkerRepository(5)
 
-	sort.Ints(result)
+	op := repo.SumWorkOperator()
 
-	log.Println("결과 :", result)
+	result := common.OperatorProcess(s, op)
+
+	log.Println("결과 : ", result)
 
 }
