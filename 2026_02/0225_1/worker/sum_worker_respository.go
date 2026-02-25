@@ -20,7 +20,7 @@ func NewSumWorkerRepository(sumWorkerNum int) SumWorkerRepository {
 	}
 
 	return SumWorkerRepository{
-		SumWorkerPool: make([]SumWorker, sumWorkerNum),
+		SumWorkerPool: sumWorkerPool,
 	}
 }
 
