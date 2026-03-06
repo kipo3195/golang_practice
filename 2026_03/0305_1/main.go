@@ -22,7 +22,12 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	msgChan := make(chan entity.Message)
+	// 버퍼가 없다면 채널에 데이터를 하나씩 넣고 뺄때까지 기다렸다가 하나 넣고 하는 구조.
+	// 효율적인 측면에서 workerpool를 사용하는건데 하나씩 빼갈때까지 collector를 쉬게 할 순 없다.
+	// worker들이 기아상태에 빠지지 않게 worker의 수 *2 만큼을 버퍼의 사이즈로 잡는다.
+	// 다만, 버퍼 사이즈를 너무 크게 잡는다면 collector와 worker사이의 병목이 줄어들어 속도는 빨라지지만, 그만큼 메모리를 점유하게 된다.
+	// 그러므로 시스템 가용 메모리와 메시지의 크기를 고려해서 적절한 타협점을 찾는 것이 중요하다.
+	msgChan := make(chan entity.Message, 6)
 	collector := collector.NewCollector(msgChan)
 
 	// 메시지
