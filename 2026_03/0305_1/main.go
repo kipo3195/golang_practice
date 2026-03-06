@@ -19,7 +19,6 @@ import (
 
 func main() {
 
-	// 최대 500ms 안에 완료를 감지할 context 생성
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
