@@ -6,6 +6,7 @@ import (
 	"sync"
 	"test/producer"
 	"test/workerpool"
+	"time"
 )
 
 // 특정 사용자에게 미확인 이벤트를 전송하는 워커풀 생성
@@ -35,19 +36,33 @@ func main() {
 	wp.Init(ctx, &wg)
 
 	// task를 워커가 처리할 수 있도록
-	for task := range taskChan {
-		// 어떤 워커에 분배할지 hash값 구하기
-		workerIdx := getWorkerHash(task.DeviceID, workerNum)
-		// 분배
-		wp.Workers[workerIdx].EventChan <- task
-	}
+	// taskChan의 데이터 in은 비동기로 처리됨.
+	// 확장성을 고려하면 어떤 워커에 분배할 지도 비동기로 처리되야 하지 않을까?
+	go func(workerNum int) {
+		// 결국 taskChan은 닫히는 채널이므로
+		for task := range taskChan {
+			// 어떤 워커에 분배할지 hash값 구하기
+			workerIdx := getWorkerHash(task.DeviceID, workerNum)
+			// 분배
+			wp.Workers[workerIdx].EventChan <- task
+		}
+
+		// 모든 task 전송 완료 후 워커들의 채널을 닫음
+		// range taskChan가 종료 될 것이므로
+		for _, w := range wp.Workers {
+			close(w.EventChan)
+		}
+	}(workerNum)
 
 	// 명시적 종료를 통한 graceful shutdown
+	// 어차피 여기서 기다리게 될 것이므로 select문 사용하지 않아도 됨
+	<-time.After(3 * time.Second)
 	cancel()
 
+	// 모든 작업이 시작과 동시에 빠른 속도 처리됨 + 3초뒤에 cancel 호출로 인해 워커들 자원 해제
 	wg.Wait()
-	fmt.Println("작업 종료.")
 
+	fmt.Println("작업 종료.")
 }
 
 func getWorkerHash(deviceId int, workerNum int) int {
