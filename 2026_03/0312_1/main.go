@@ -1,11 +1,5 @@
 package main
 
-import (
-	"context"
-	"test/producer"
-	"time"
-)
-
 // 팬아웃 및 배치 로그 플러셔 (Log Flusher)
 
 // 대량의 채팅 메시지가 발생하는 메신저 서버에서, 모든 메시지를 발생할 때마다 DB에 쓰면 부하가 너무 큽니다.
@@ -31,12 +25,7 @@ import (
 //    batch : 메시지 수집, 3초 주기로 동작
 
 func main() {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	// 메시지 수집, 수집 채널 반환
-	msgChan := producer.Produce(ctx, 40)
-
-	// 배치 작업 수행 로직 처리
+	// 코드를 너무 어렵게 작성함
+	// 0312_2로 가서 다시풀것
 
 }

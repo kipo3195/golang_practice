@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"test/entity"
+	"time"
 )
 
 type Batch struct {
-	recvChan  chan entity.Message
-	batchChan chan entity.FlushEntity
+	recvChan   chan entity.Message
+	batchChan  chan entity.FlushEntity
+	pendingMap map[string]*entity.SaveEntity
 }
 
 func NewBatch() *Batch {
@@ -40,7 +42,12 @@ func (r *Batch) RecvProcess(ctx context.Context, msgChan <-chan entity.Message) 
 					// 여기에 모든 배치 작업을 마무리 하는 로직이 들어가야되나?
 					// 근데 그러면 너무 많은 로직에서 처리를 해야될거같은데 r.batchChan을 닫지 않고 정리하는 한 다음 채널을 닫는 함수를 생성?
 				default:
-					r.BatchProcess(ctx, msg)
+					// 다시 job에 넣어버릴까?
+					r.batchChan <- entity.FlushEntity{
+						IsFlush:  false,
+						Messages: &msg,
+					}
+
 				}
 			}
 		}
@@ -52,28 +59,50 @@ func (r *Batch) RecvProcess(ctx context.Context, msgChan <-chan entity.Message) 
 // batch -> collect or flush
 func (r *Batch) BatchProcess(ctx context.Context, msg entity.Message) {
 
-	select {
+	go func() {
 
-	case b := <-r.batchChan:
+		for job := range r.batchChan {
 
-		if b.IsFlush {
-			// DB 프로세스 실행
+			if job.IsFlush {
+				savedEntity := r.pendingMap["t"]
+				dbSaveProcess(savedEntity.Msg)
+				// 전송 했으니 삭제
+				delete(r.pendingMap, "t")
+				return
+			}
 
-			dbSaveProcess(b.Messages)
-
-			// 새로운 Flush entity를 생성하거나 isFlush, Messages를 비어있는 걸로 변경한 후 ---------- 2
-			// 아래의 1번 로직 수행
+			r.addProcess(ctx, job.Messages)
 		}
 
-		b.Messages = append(b.Messages, &msg)
-		// batch chan에 넣고나서 상태를 확인, 5개면 is flush로 변경 -------- 1 (반복)
-	case <-ctx.Done():
-		// 여기서는 남아있는 모든 작업을 수행 할 수 있는 함수를 생성하여 처리하는것이 어떨까?
-		// 아니면 RecvProcess에서 모든 작업을 수행 할 수 있는 함수를 호출하는게 맞는건가
-		// 근데 그러면 너무 많은 로직에서 처리를 해야될거같은데 r.batchChan을 닫지 않고 정리하는 한 다음 채널을 닫는 함수를 생성?
+	}()
+
+}
+
+func (r *Batch) addProcess(ctx context.Context, msg *entity.Message) {
+
+	v, exists := r.pendingMap["t"]
+
+	if !exists {
+		// 최초 혹은 발송 후
+		temp := make([]*entity.Message, 0)
+		temp = append(temp, msg)
+
+		saveEntity := &entity.SaveEntity{
+			Msg: temp,
+		}
+
+		saveEntity.Timer = time.AfterFunc(3*time.Second, func() {
+			// 중요: 워커 자신의 채널로 Flush 작업을 다시 던집니다.
+			r.batchChan <- entity.FlushEntity{
+				IsFlush:  true,
+				Messages: nil,
+			}
+		})
+
 		return
 	}
 
+	v.Msg = append(v.Msg, msg)
 }
 
 func dbSaveProcess(msgs []*entity.Message) {
