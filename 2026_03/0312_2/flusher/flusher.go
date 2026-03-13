@@ -17,7 +17,6 @@ func Flusher(ctx context.Context, eventChan <-chan entity.Message) {
 	defer ticker.Stop()
 
 	// 메시지 저장용
-
 	for {
 		select {
 		case <-ctx.Done():
@@ -29,9 +28,10 @@ func Flusher(ctx context.Context, eventChan <-chan entity.Message) {
 			if !ok {
 				// 남은 이벤트 모두 저장
 				if len(buffer) > 0 {
+					fmt.Printf("여기? %d \n", len(buffer))
 					buffer = DBSave(buffer)
-					return
 				}
+				return
 			}
 			// 채널에 데이터 수신, 5개 이상이라면 DBSave
 			buffer = append(buffer, msg)

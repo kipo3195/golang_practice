@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"sync"
 	"test/flusher"
 	"test/producer"
 	"time"
@@ -14,8 +16,17 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	var wg sync.WaitGroup
 	// 20개의 이벤트 주입
 	eventChan := producer.Produce(ctx, 20)
-	flusher.Flusher(ctx, eventChan)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		flusher.Flusher(ctx, eventChan)
+	}()
+
+	wg.Wait()
+
+	fmt.Println("작업 종료")
 
 }
